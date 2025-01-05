@@ -1,0 +1,89 @@
+import mysql.connector as d
+import tkinter
+def setup_database():
+ conn = d.connect(host="localhost", user="root", password="martha55", database="expense_tracker")
+ cursor = conn.cursor()
+ cursor.execute("""
+ CREATE TABLE IF NOT EXISTS expenses (
+ id INT AUTO_INCREMENT PRIMARY KEY,
+ date DATE NOT NULL,
+ category VARCHAR(255) NOT NULL,
+ amount float NOT NULL
+ )
+ """)
+ conn.commit()
+ conn.close()
+def add_expense():
+ date = date_entry.get()
+ category = category_entry.get()
+ amount = amount_entry.get()
+ if date and category and amount:
+ conn = d.connect(host="localhost", user="root", password="martha55",
+database="expense_tracker")
+ cursor = conn.cursor()
+ cursor.execute("INSERT INTO expenses (date, category, amount) VALUES (%s, %s, %s)",
+ (date, category, float(amount)))
+ conn.commit()
+ conn.close()
+ load_expenses()
+ else:
+ print("Please fill all fields.")
+def load_expenses():
+ expense_list.delete(0, tkinter.END)
+ conn = d.connect(host="localhost", user="root", password="martha55", database="expense_tracker")
+ cursor = conn.cursor()
+cursor.execute("SELECT id, date, category, amount FROM expenses")
+ for row in cursor.fetchall():
+ expense_list.insert(tkinter.END, f"{row[0]} | {row[1]} | {row[2]} | ₹{row[3]:.2f}")
+ conn.close()
+def filter_by_date():
+ date = filter_date_entry.get()
+ expense_list.delete(0, tkinter.END)
+ conn = d.connect(host="localhost", user="root", password="martha55", database="expense_tracker")
+ cursor = conn.cursor()
+ cursor.execute("SELECT id, date, category, amount FROM expenses WHERE date = %s", (date,))
+ results = cursor.fetchall()
+ if results:
+ for row in results:
+ expense_list.insert(tkinter.END, f"{row[0]} | {row[1]} | {row[2]} | ₹{row[3]:.2f}")
+ else:
+ expense_list.insert(tkinter.END, "No expenses found for this date.")
+ conn.close()
+def delete_expense():
+ selected_item = expense_list.get(tkinter.ACTIVE)
+ if selected_item:
+ expense_id = selected_item.split(" | ")[0]
+ conn = d.connect(host="localhost", user="root", password="martha55",
+database="expense_tracker")
+ cursor = conn.cursor()
+ cursor.execute("DELETE FROM expenses WHERE id = %s", (expense_id,))
+ conn.commit()
+ conn.close()
+ load_expenses()
+def setup_ui():
+ global date_entry, category_entry, amount_entry, expense_list, filter_date_entry
+ root = tkinter.Tk()
+ root.title("Expense Tracker")
+ tkinter.Label(root, text="Date (DD-MM-YYYY):").pack()
+ date_entry = tkinter.Entry(root)
+ date_entry.pack()
+tkinter.Label(root, text="Category:").pack()
+ category_entry = tkinter.Entry(root)
+ category_entry.pack()
+ tkinter.Label(root, text="Amount (₹):").pack()
+ amount_entry = tkinter.Entry(root)
+ amount_entry.pack()
+ tkinter.Button(root, text="Add Expense", command=add_expense).pack(pady=5)
+ tkinter.Label(root, text="Filter Expenses by Date (DD-MM-YYYY):").pack()
+ filter_date_entry = tkinter.Entry(root)
+ filter_date_entry.pack()
+ tkinter.Button(root, text="Filter", command=filter_by_date).pack(pady=5)
+ tkinter.Label(root, text="Expenses:").pack()
+ expense_list = tkinter.Listbox(root, width=50)
+ expense_list.pack()
+ tkinter.Button(root, text="Delete Selected", command=delete_expense).pack(pady=5)
+ load_expenses()
+ root.mainloop()
+if _name_ == "_main_":
+ setup_database()
+ setup_ui()
